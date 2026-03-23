@@ -15,18 +15,23 @@ app.post("/register", async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
     if (!name || !email || !password) {
-      return res.status(400).json({ error: "All fields are required" });
+      return res.status(400).json({ message: "All fields are required" });
     }
     const isValid = validator.validate(email);
     if (!isValid) {
-      return res.status(400).json({ error: "Invalid email" });
+      return res.status(400).json({ message: "Invalid email" });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({
+        message: "password should be strong",
+      });
     }
     const hashedPass = await hashing(DOMPurify.sanitize(password));
     const exist = await db.users.findFirst({
       where: { email: email },
     });
     if (exist) {
-      return res.status(409).json({ error: "User already exists" });
+      return res.status(409).json({ message: "User already exists" });
     }
     await db.users.create({
       data: {
