@@ -30,7 +30,6 @@ app.post("/register", async (req, res) => {
                 name: DOMPurify.sanitize(name),
                 email: DOMPurify.sanitize(email),
                 password: hashedPass,
-                role: "User",
             },
         });
         return res.status(201).json({ message: "ok" });

@@ -21,7 +21,6 @@ app.post("/register", async (req, res) => {
     if (!isValid) {
       return res.status(400).json({ error: "Invalid email" });
     }
-    
     const hashedPass = await hashing(DOMPurify.sanitize(password));
     const exist = await db.users.findFirst({
       where: { email: email },
@@ -34,7 +33,6 @@ app.post("/register", async (req, res) => {
         name: DOMPurify.sanitize(name),
         email: DOMPurify.sanitize(email),
         password: hashedPass,
-        role: "User",
       },
     });
     return res.status(201).json({ message: "ok" });
