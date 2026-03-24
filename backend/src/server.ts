@@ -33,7 +33,7 @@ app.use("/users", UserRouter);
 app.use("/users", DeleteUser);
 app.use("/posts", AddPost);
 app.use("/posts", ReadPost);
-app.use("/posts/:id", DeletePost);
+app.use("/posts", DeletePost);
 
 app.listen(3001, () => {
   console.log("server is running");
