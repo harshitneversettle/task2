@@ -5,12 +5,15 @@ import validator from "email-validator";
 import bcrypt from "bcrypt";
 import jwt, { type SignOptions } from "jsonwebtoken";
 import dotenv from "dotenv";
+import { auth } from "./middlewares/auth.js";
 import type { jwtPayload } from "./types/jwtPayload.js";
+import cookieParser from "cookie-parser";
+
 dotenv.config();
 
 const app = express();
 app.use(express.json());
-
+app.use(cookieParser());
 app.get("/", (req, res) => {
   console.log("jansjn");
 });
@@ -151,7 +154,7 @@ app.post("/refresh", async (req, res) => {
         maxAge: 7 * 24 * 60 * 60 * 1000,
         sameSite: "strict",
       });
-      return res.status(200).json(newAccessToken);
+      return res.status(200).json({ accessToken: newAccessToken });
     } else {
       return res.status(401).json({ message: "invalid refresh token" });
     }
@@ -160,10 +163,25 @@ app.post("/refresh", async (req, res) => {
   }
 });
 
-app.post("/logout", auth , async (req, res) => {
+app.post("/logout", auth, async (req, res) => {
   try {
-    const refreshToken = req.cookies.refreshToken;
+    console.log(req.body);
 
+    const decoded = req.body.user as jwtPayload;
+    if (!decoded) {
+      return res.status(401).json({ message: "error" });
+    }
+    const user = await db.users.findFirst({ where: { id: decoded.userId } });
+    if (!user) {
+      return res.status(401).json({ message: "error" });
+    }
+
+    await db.users.update({
+      where: { id: user.id },
+      data: { refreshToken: null },
+    });
+    res.clearCookie("refreshToken");
+    res.status(200).json({ message: "successfyllu logget out" });
   } catch (error) {
     return res.status(500).json({ message: "something is wrong" });
   }
