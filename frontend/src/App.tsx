@@ -1,71 +1,95 @@
 import { useState } from "react";
 import Login from "./components/login";
 import Register from "./components/register";
+import Refresh from "./components/refresh";
+import Logout from "./components/logout";
+import GetMe from "./components/getMe";
+import GetUsers from "./components/getUsers";
+import DeleteUser from "./components/deleteUser";
+import CreatePost from "./components/createPost";
+import GetPosts from "./components/getPost";
+import DeletePost from "./components/deletePost";
 
-type Screen = "login" | "register" | "dashboard";
+type Screen =
+  | "login"
+  | "register"
+  | "refresh"
+  | "logout"
+  | "getme"
+  | "getusers"
+  | "deleteuser"
+  | "createpost"
+  | "getposts"
+  | "deletepost";
+
+const navItems: { label: string; screen: Screen }[] = [
+  { label: "Login", screen: "login" },
+  { label: "Register", screen: "register" },
+  { label: "Refresh", screen: "refresh" },
+  { label: "Logout", screen: "logout" },
+  { label: "GET /me", screen: "getme" },
+  { label: "GET /users", screen: "getusers" },
+  { label: "DEL /user", screen: "deleteuser" },
+  { label: "POST /post", screen: "createpost" },
+  { label: "GET /posts", screen: "getposts" },
+  { label: "DEL /post", screen: "deletepost" },
+];
 
 export default function App() {
-  const [screen, setScreen] = useState<Screen>(
-    localStorage.getItem("accessToken") ? "dashboard" : "login",
-  );
+  const [screen, setScreen] = useState<Screen>("login");
+  const [token, setToken] = useState(localStorage.getItem("accessToken") || "");
 
-  const handleLogin = () => setScreen("dashboard");
-  const handleRegister = () => setScreen("login");
+  const handleLogin = () => {
+    setToken(localStorage.getItem("accessToken") || "");
+    setScreen("getme");
+  };
+
   const handleLogout = () => {
-    localStorage.removeItem("accessToken");
+    setToken("");
     setScreen("login");
   };
 
-  if (screen === "dashboard") {
-    return (
-      <div>
-        <div className="bg-gray-950 border-b border-gray-800 px-6 py-3 flex justify-between items-center font-mono">
-          <span className="text-gray-400 text-xs">
-            token:{" "}
-            <span className="text-green-400 text-xs">
-              {localStorage.getItem("accessToken")?.slice(0, 30)}…
-            </span>
-          </span>
-          <button
-            onClick={handleLogout}
-            className="text-xs text-red-400 hover:text-red-300"
-          >
-            logout
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const handleRefresh = (t: string) => setToken(t);
 
   return (
     <div className="min-h-screen bg-white">
-      {screen === "login" ? (
-        <div>
-          <Login onLogin={handleLogin} />
-          <p className="text-center text-sm text-gray-500 -mt-6">
-            No account?{" "}
-            <button
-              className="text-black underline"
-              onClick={() => setScreen("register")}
-            >
-              Register
-            </button>
-          </p>
-        </div>
-      ) : (
-        <div>
-          <Register onRegister={handleRegister} />
-          <p className="text-center text-sm text-gray-500 -mt-6">
-            Already have an account?{" "}
-            <button
-              className="text-black underline"
-              onClick={() => setScreen("login")}
-            >
-              Login
-            </button>
-          </p>
-        </div>
-      )}
+      {/* navbar */}
+      <div className="border-b flex flex-wrap gap-1 p-3 items-center">
+        {navItems.map((n) => (
+          <button
+            key={n.screen}
+            onClick={() => setScreen(n.screen)}
+            className={`px-3 py-1 rounded text-sm border transition-colors ${
+              screen === n.screen
+                ? "bg-black text-white border-black"
+                : "border-gray-300 text-gray-600 hover:border-black"
+            }`}
+          >
+            {n.label}
+          </button>
+        ))}
+        {token && (
+          <span className="ml-auto text-xs text-gray-400 truncate max-w-xs">
+            {token.slice(0, 24)}…
+          </span>
+        )}
+      </div>
+
+      {/* active screen */}
+      <div>
+        {screen === "login" && <Login onLogin={handleLogin} />}
+        {screen === "register" && (
+          <Register onRegister={() => setScreen("login")} />
+        )}
+        {screen === "refresh" && <Refresh onRefresh={handleRefresh} />}
+        {screen === "logout" && <Logout onLogout={handleLogout} />}
+        {screen === "getme" && <GetMe />}
+        {screen === "getusers" && <GetUsers />}
+        {screen === "deleteuser" && <DeleteUser />}
+        {screen === "createpost" && <CreatePost />}
+        {screen === "getposts" && <GetPosts />}
+        {screen === "deletepost" && <DeletePost />}
+      </div>
     </div>
   );
 }
