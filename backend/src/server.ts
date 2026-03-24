@@ -233,8 +233,22 @@ app.get("/users", auth, isAdmin, async (req, res) => {
         createdAt: true,
       },
     });
-
     return res.status(200).json({ alldata });
+  } catch (error) {
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.delete("/users/:id", auth, isAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const numId = Number(id);
+    const user = await db.users.findFirst({ where: { id: numId } });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    await db.users.delete({ where: { id: numId } });
+    return res.status(200).json({ message: "User deleted successfully" });
   } catch (error) {
     return res.status(500).json({ message: "Internal server error" });
   }
