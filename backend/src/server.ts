@@ -9,7 +9,7 @@ import LogoutRouter from "./routers/logout.route.js";
 import UserMeRouter from "./routers/userMe.route.js";
 import UserRouter from "./routers/users.route.js";
 import DeleteUser from "./routers/deleteUser.route.js";
-import AddPost from "./routers/addPost.route.js";
+import AddPost from "./routers/addPost.router.js";
 import ReadPost from "./routers/readPost.route.js";
 import DeletePost from "./routers/deletePost.route.js";
 
