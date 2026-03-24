@@ -11,12 +11,19 @@ import cookieParser from "cookie-parser";
 import { isAdmin } from "./middlewares/isAdmin.js";
 import rateLimit from "express-rate-limit";
 import { ratelimiter } from "./middlewares/rateLimiter.js";
+import cors from "cors";
 
 dotenv.config();
 
 const app = express();
 app.use(express.json());
 app.use(cookieParser());
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  }),
+);
 app.get("/", (req, res) => {
   console.log("jansjn");
 });
@@ -274,7 +281,7 @@ app.post("/posts", auth, async (req, res) => {
     });
     return res.status(201).json({ post: newPost });
   } catch (error) {
-    console.log(error)
+    console.log(error);
     return res.status(500).json({ message: "Internal server error" });
   }
 });
