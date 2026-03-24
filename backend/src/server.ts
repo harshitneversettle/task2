@@ -274,6 +274,7 @@ app.post("/posts", auth, async (req, res) => {
     });
     return res.status(201).json({ post: newPost });
   } catch (error) {
+    console.log(error)
     return res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -300,13 +301,13 @@ app.delete("/posts/:id", auth, isAdmin, async (req, res) => {
     if (!post) {
       return res.status(404).json({ message: "Post not found" });
     }
-
     await db.posts.delete({ where: { id: numId } });
     return res.status(200).json({ message: "Post deleted successfully" });
   } catch (error) {
     return res.status(500).json({ message: "Internal server error" });
   }
 });
+
 app.listen(3001, () => {
   console.log("server is running");
 });
