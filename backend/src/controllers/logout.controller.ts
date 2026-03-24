@@ -4,7 +4,6 @@ import type { jwtPayload } from "../types/jwtPayload.js";
 
 export const logout = async (req: Request, res: Response) => {
   try {
-    console.log(req.body);
 
     const decoded = (req as any).user as jwtPayload;
     if (!decoded) {

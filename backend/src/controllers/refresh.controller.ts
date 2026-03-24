@@ -1,7 +1,7 @@
 import { db } from "../db.js";
 import type { jwtPayload } from "../types/jwtPayload.js";
 import jwt from "jsonwebtoken";
-import express, { type Request, type Response } from "express";
+import { type Request, type Response } from "express";
 
 
 

@@ -1,18 +1,7 @@
-import express, { type Request, type Response } from "express";
-import { hashing } from "./helpers/hash.js";
-import { db } from "./db.js";
-import validator from "email-validator";
-import bcrypt from "bcrypt";
-import jwt, { type SignOptions } from "jsonwebtoken";
+import express from "express";
 import dotenv from "dotenv";
-import { auth } from "./middlewares/auth.js";
-import type { jwtPayload } from "./types/jwtPayload.js";
 import cookieParser from "cookie-parser";
-import { isAdmin } from "./middlewares/isAdmin.js";
-import rateLimit from "express-rate-limit";
-import { ratelimiter } from "./middlewares/rateLimiter.js";
 import cors from "cors";
-import router from "./routers/register.route.js";
 import RegisterRouter from "./routers/register.route.js";
 import LoginRouter from "./routers/login.route.js";
 import RefreshRouter from "./routers/refresh.route.js";
@@ -35,10 +24,6 @@ app.use(
     credentials: true,
   }),
 );
-app.get("/", (req, res) => {
-  console.log("jansjn");
-});
-
 app.use("/register", RegisterRouter);
 app.use("/login", LoginRouter);
 app.use("/refresh", RefreshRouter);

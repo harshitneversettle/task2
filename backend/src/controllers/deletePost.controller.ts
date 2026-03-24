@@ -1,6 +1,5 @@
 import { db } from "../db.js";
 import { type Request, type Response } from "express";
-import type { jwtPayload } from "../types/jwtPayload.js";
 
 export const deletePost = async (req: Request, res: Response) => {
   try {

@@ -1,4 +1,4 @@
-import express, { type Request, type Response } from "express";
+import { type Request, type Response } from "express";
 import validator from "email-validator";
 import bcrypt from "bcrypt";
 import jwt, { type SignOptions } from "jsonwebtoken";
