@@ -97,7 +97,12 @@ app.post("/login", async (req, res) => {
       data: { refreshToken },
     });
 
-    return res.status(200).json({ accessToken, refreshToken });
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      sameSite: "strict",
+    });
+    return res.status(200).json({ accessToken });
   } catch (error) {
     return res.status(500).json({ message: "something is wrong" });
   }
@@ -105,7 +110,7 @@ app.post("/login", async (req, res) => {
 
 app.post("/refresh", async (req, res) => {
   try {
-    const { refreshToken } = req.body;
+    const refreshToken = req.cookies.refreshToken;
     if (!refreshToken) {
       return res.status(400).json({ message: "invalid token" });
     }
@@ -129,9 +134,24 @@ app.post("/refresh", async (req, res) => {
         process.env.ACCESS_SECRET!,
         { expiresIn: "15m" },
       );
-      return res.status(200).json({
-        message: newAccessToken,
+
+      const newRefreshToken = jwt.sign(
+        {
+          userId: user?.id,
+        },
+        process.env.REFRESH_SECRET!,
+        { expiresIn: "7d" },
+      );
+      await db.users.update({
+        where: { id: user.id },
+        data: { refreshToken: newRefreshToken },
       });
+      res.cookie("refreshToken", newRefreshToken, {
+        httpOnly: true,
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        sameSite: "strict",
+      });
+      return res.status(200).json(newAccessToken);
     } else {
       return res.status(401).json({ message: "invalid refresh token" });
     }
@@ -140,6 +160,14 @@ app.post("/refresh", async (req, res) => {
   }
 });
 
+app.post("/logout", auth , async (req, res) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+
+  } catch (error) {
+    return res.status(500).json({ message: "something is wrong" });
+  }
+});
 app.listen(3001, () => {
   console.log("server is running");
 });
