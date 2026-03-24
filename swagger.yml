@@ -1,0 +1,470 @@
+openapi: 3.0.0
+info:
+  title: Backend API
+  version: 1.0.0
+  description: Complete API documentation for the backend
+
+servers:
+  - url: http://localhost:3001
+    description: Local development server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: refreshToken
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "John Doe"
+        email:
+          type: string
+          example: "john@example.com"
+        role:
+          type: string
+          enum: [User, Admin]
+          example: "User"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00.000Z"
+
+    Post:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: "My first post"
+        description:
+          type: string
+          example: "This is the description"
+        userId:
+          type: integer
+          example: 1
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+
+paths:
+
+  # ─────────────────────────────────────────
+  # AUTH
+  # ─────────────────────────────────────────
+
+  /register:
+    post:
+      summary: Register a new user
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name:
+                  type: string
+                  example: "John Doe"
+                email:
+                  type: string
+                  example: "john@example.com"
+                password:
+                  type: string
+                  minLength: 6
+                  example: "secret123"
+                role:
+                  type: string
+                  enum: [User, Admin]
+                  example: "User"
+      responses:
+        201:
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "ok"
+        400:
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                missingFields:
+                  value: { message: "All fields are required" }
+                invalidEmail:
+                  value: { message: "Invalid email" }
+                weakPassword:
+                  value: { message: "password should be strong" }
+        409:
+          description: User already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: "User already exists"
+        500:
+          description: Internal server error
+
+  /login:
+    post:
+      summary: Login a user
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  example: "john@example.com"
+                password:
+                  type: string
+                  example: "secret123"
+      responses:
+        200:
+          description: Login successful — sets refreshToken cookie
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: refreshToken=xxx; HttpOnly; SameSite=Strict
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        400:
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        401:
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: "Invalid credentials"
+        500:
+          description: Internal server error
+
+  /refresh:
+    post:
+      summary: Refresh access token using refresh token cookie
+      tags:
+        - Auth
+      security:
+        - cookieAuth: []
+      responses:
+        200:
+          description: New access token and refreshToken cookie set
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: refreshToken=xxx; HttpOnly; SameSite=Strict
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        400:
+          description: Invalid or missing refresh token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        401:
+          description: Refresh token mismatch
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        500:
+          description: Internal server error
+
+  /logout:
+    post:
+      summary: Logout — clears refresh token
+      tags:
+        - Auth
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Successfully logged out
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "successfyllu logget out"
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        500:
+          description: Internal server error
+
+  # ─────────────────────────────────────────
+  # USERS
+  # ─────────────────────────────────────────
+
+  /users/me:
+    get:
+      summary: Get current logged-in user profile
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Current user data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: "#/components/schemas/User"
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        404:
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        500:
+          description: Internal server error
+
+  /users:
+    get:
+      summary: Get all users (Admin only)
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: List of all users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  alldata:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/User"
+        401:
+          description: Unauthorized
+        403:
+          description: Forbidden — Admin only
+        500:
+          description: Internal server error
+
+  /users/{id}:
+    delete:
+      summary: Delete a user by ID (Admin only)
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: User ID to delete
+          example: 9
+      responses:
+        200:
+          description: User deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "User deleted successfully"
+        400:
+          description: Invalid or missing user ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        401:
+          description: Unauthorized
+        403:
+          description: Forbidden — Admin only
+        404:
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        500:
+          description: Internal server error
+
+  # ─────────────────────────────────────────
+  # POSTS
+  # ─────────────────────────────────────────
+
+  /posts:
+    post:
+      summary: Create a new post
+      tags:
+        - Posts
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, description]
+              properties:
+                title:
+                  type: string
+                  example: "My first post"
+                description:
+                  type: string
+                  example: "This is the post description"
+      responses:
+        201:
+          description: Post created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  post:
+                    $ref: "#/components/schemas/Post"
+        400:
+          description: Missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: "All fields are required"
+        401:
+          description: Unauthorized
+        500:
+          description: Internal server error
+
+    get:
+      summary: Get all posts of logged-in user
+      tags:
+        - Posts
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: List of user's posts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  posts:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Post"
+        401:
+          description: Unauthorized
+        500:
+          description: Internal server error
+
+  /posts/{id}:
+    delete:
+      summary: Delete a post by ID
+      tags:
+        - Posts
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: Post ID to delete
+          example: 3
+      responses:
+        200:
+          description: Post deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Post deleted successfully"
+        400:
+          description: Invalid or missing post ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        404:
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        401:
+          description: Unauthorized
+        500:
+          description: Internal server error
