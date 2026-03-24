@@ -12,6 +12,17 @@ import { isAdmin } from "./middlewares/isAdmin.js";
 import rateLimit from "express-rate-limit";
 import { ratelimiter } from "./middlewares/rateLimiter.js";
 import cors from "cors";
+import router from "./routers/register.route.js";
+import RegisterRouter from "./routers/register.route.js";
+import LoginRouter from "./routers/login.route.js";
+import RefreshRouter from "./routers/refresh.route.js";
+import LogoutRouter from "./routers/logout.route.js";
+import UserMeRouter from "./routers/userMe.route.js";
+import UserRouter from "./routers/users.route.js";
+import DeleteUser from "./routers/deleteUser.route.js";
+import AddPost from "./routers/addPost.route.js";
+import ReadPost from "./routers/readPost.route.js";
+import DeletePost from "./routers/deletePost.route.js";
 
 dotenv.config();
 
@@ -28,292 +39,16 @@ app.get("/", (req, res) => {
   console.log("jansjn");
 });
 
-app.post("/register", ratelimiter, async (req, res) => {
-  console.log("insode");
-  try {
-    const { name, email, password, role } = req.body;
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-    const isValid = validator.validate(email);
-    if (!isValid) {
-      return res.status(400).json({ message: "Invalid email" });
-    }
-    if (password.length < 6) {
-      return res.status(400).json({
-        message: "password should be strong",
-      });
-    }
-    const hashedPass = await hashing(password);
-    const exist = await db.users.findFirst({
-      where: { email: email },
-    });
-    if (exist) {
-      return res.status(409).json({ message: "User already exists" });
-    }
-    await db.users.create({
-      data: {
-        name: name,
-        email: email,
-        password: hashedPass,
-      },
-    });
-    return res.status(201).json({ message: "ok" });
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({ message: "something is wrong" });
-  }
-});
-
-app.post("/login", ratelimiter, async (req: Request, res: Response) => {
-  try {
-    const { email, password } = req.body;
-    if (!email || !password) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-    const isValid = validator.validate(email);
-    if (!isValid) {
-      return res.status(400).json({ message: "Invalid email" });
-    }
-
-    const user = await db.users.findFirst({ where: { email: email } });
-    if (!user) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
-
-    const accessTokenOptions: SignOptions = {
-      expiresIn: "15m",
-    };
-
-    const refreshTokenOptions: SignOptions = {
-      expiresIn: "7d",
-    };
-
-    const accessToken = jwt.sign(
-      { userId: user.id, userRole: user.role },
-      process.env.ACCESS_SECRET!,
-      accessTokenOptions,
-    );
-
-    const refreshToken = jwt.sign(
-      { userId: user.id },
-      process.env.REFRESH_SECRET!,
-      refreshTokenOptions,
-    );
-
-    await db.users.update({
-      where: { id: user.id },
-      data: { refreshToken },
-    });
-
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      sameSite: "strict",
-    });
-    return res.status(200).json({ accessToken });
-  } catch (error) {
-    return res.status(500).json({ message: "something is wrong" });
-  }
-});
-
-app.post("/refresh", ratelimiter, async (req, res) => {
-  try {
-    const refreshToken = req.cookies.refreshToken;
-    if (!refreshToken) {
-      return res.status(400).json({ message: "invalid token" });
-    }
-    const decode = jwt.verify(
-      refreshToken,
-      process.env.REFRESH_SECRET!,
-    ) as jwtPayload;
-
-    const user = await db.users.findFirst({ where: { id: decode.userId } });
-    if (!user) {
-      return res.status(400).json({ message: "refresh token expired" });
-    }
-    const dbRefreshToken = user?.refreshToken;
-    if (dbRefreshToken === refreshToken) {
-      // make access token
-      const newAccessToken = jwt.sign(
-        {
-          userId: user?.id,
-          role: user?.role,
-        },
-        process.env.ACCESS_SECRET!,
-        { expiresIn: "15m" },
-      );
-
-      const newRefreshToken = jwt.sign(
-        {
-          userId: user?.id,
-        },
-        process.env.REFRESH_SECRET!,
-        { expiresIn: "7d" },
-      );
-      await db.users.update({
-        where: { id: user.id },
-        data: { refreshToken: newRefreshToken },
-      });
-      res.cookie("refreshToken", newRefreshToken, {
-        httpOnly: true,
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-        sameSite: "strict",
-      });
-      return res.status(200).json({ accessToken: newAccessToken });
-    } else {
-      return res.status(401).json({ message: "invalid refresh token" });
-    }
-  } catch (error) {
-    return res.status(500).json({ message: "something is wrong" });
-  }
-});
-
-app.post("/logout", auth, async (req, res) => {
-  try {
-    console.log(req.body);
-
-    const decoded = (req as any).user as jwtPayload;
-    if (!decoded) {
-      return res.status(401).json({ message: "error" });
-    }
-    const user = await db.users.findFirst({ where: { id: decoded.userId } });
-    if (!user) {
-      return res.status(401).json({ message: "error" });
-    }
-
-    await db.users.update({
-      where: { id: user.id },
-      data: { refreshToken: null },
-    });
-    res.clearCookie("refreshToken", {
-      httpOnly: true,
-      sameSite: "strict",
-    });
-    res.status(200).json({ message: "successfyllu logget out" });
-  } catch (error) {
-    return res.status(500).json({ message: "something is wrong" });
-  }
-});
-
-app.get("/users/me", auth, async (req, res) => {
-  try {
-    const decoded = (req as any).user as jwtPayload;
-    if (!decoded) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
-    const user = await db.users.findFirst({
-      where: { id: decoded.userId },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        createdAt: true,
-      },
-    });
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    return res.status(200).json({ user });
-  } catch (error) {
-    console.error("Get profile error:", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
-});
-
-app.get("/users", auth, isAdmin, async (req, res) => {
-  try {
-    const user = (req as any).userInfo;
-
-    const alldata = await db.users.findMany({
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        createdAt: true,
-      },
-    });
-    return res.status(200).json({ alldata });
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
-});
-
-app.delete("/users/:id", auth, isAdmin, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const numId = Number(id);
-    const user = await db.users.findFirst({ where: { id: numId } });
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-    await db.users.delete({ where: { id: numId } });
-    return res.status(200).json({ message: "User deleted successfully" });
-  } catch (error) {
-    return res.status(500).json({ message: "Internal server error" });
-  }
-});
-
-app.post("/posts", auth, async (req, res) => {
-  try {
-    const { title, description } = req.body;
-    if (!title || !description) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-    const decoded = (req as any).user as jwtPayload;
-
-    const newPost = await db.posts.create({
-      data: {
-        title,
-        description,
-        userId: decoded.userId,
-      },
-    });
-    return res.status(201).json({ post: newPost });
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
-});
-
-app.get("/posts", auth, async (req, res) => {
-  try {
-    const decode = (req as any).user as jwtPayload;
-    const allPost = await db.posts.findMany({
-      where: {
-        userId: decode.userId,
-      },
-    });
-    return res.status(200).json({ posts: allPost });
-  } catch (error) {
-    return res.status(500).json({ message: "Internal server error" });
-  }
-});
-
-app.delete("/posts/:id", auth, isAdmin, async (req, res) => {
-  try {
-    const numId = Number(req.params.id);
-
-    const post = await db.posts.findFirst({ where: { id: numId } });
-    if (!post) {
-      return res.status(404).json({ message: "Post not found" });
-    }
-    await db.posts.delete({ where: { id: numId } });
-    return res.status(200).json({ message: "Post deleted successfully" });
-  } catch (error) {
-    return res.status(500).json({ message: "Internal server error" });
-  }
-});
+app.use("/register", RegisterRouter);
+app.use("/login", LoginRouter);
+app.use("/refresh", RefreshRouter);
+app.use("/logout", LogoutRouter);
+app.use("/users/me", UserMeRouter);
+app.use("/users", UserRouter);
+app.use("/users/:id", DeleteUser);
+app.use("/posts", AddPost);
+app.use("/posts", ReadPost);
+app.use("/posts/:id", DeletePost);
 
 app.listen(3001, () => {
   console.log("server is running");
