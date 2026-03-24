@@ -21,4 +21,14 @@ model Users {
   refreshToken String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  posts Posts[]
+}
+
+
+model Posts {
+  id Int @id @default(autoincrement()) 
+  title String
+  description String
+  userId Int
+  users Users @relation(fields: [userId] , references: [id])
 }

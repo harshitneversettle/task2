@@ -257,6 +257,56 @@ app.delete("/users/:id", auth, isAdmin, async (req, res) => {
   }
 });
 
+app.post("/posts", auth, async (req, res) => {
+  try {
+    const { title, description } = req.body;
+    if (!title || !description) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+    const decoded = (req as any).user as jwtPayload;
+
+    const newPost = await db.posts.create({
+      data: {
+        title,
+        description,
+        userId: decoded.userId,
+      },
+    });
+    return res.status(201).json({ post: newPost });
+  } catch (error) {
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.get("/posts", auth, async (req, res) => {
+  try {
+    const decode = (req as any).user as jwtPayload;
+    const allPost = await db.posts.findMany({
+      where: {
+        userId: decode.userId,
+      },
+    });
+    return res.status(200).json({ posts: allPost });
+  } catch (error) {
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.delete("/posts/:id", auth, isAdmin, async (req, res) => {
+  try {
+    const numId = Number(req.params.id);
+
+    const post = await db.posts.findFirst({ where: { id: numId } });
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    await db.posts.delete({ where: { id: numId } });
+    return res.status(200).json({ message: "Post deleted successfully" });
+  } catch (error) {
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
 app.listen(3001, () => {
   console.log("server is running");
 });
