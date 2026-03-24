@@ -221,17 +221,23 @@ app.get("/users/me", auth, async (req, res) => {
 });
 
 app.get("/users", auth, isAdmin, async (req, res) => {
-  const user = req.body.userInfo;
+  try {
+    const user = req.body.userInfo;
 
-  const alldata = await db.users.findMany({
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      createdAt : true 
-    },
-  });
+    const alldata = await db.users.findMany({
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
+      },
+    });
+
+    return res.status(200).json({ alldata });
+  } catch (error) {
+    return res.status(500).json({ message: "Internal server error" });
+  }
 });
 
 app.listen(3001, () => {
