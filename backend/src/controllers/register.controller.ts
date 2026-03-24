@@ -3,7 +3,6 @@ import { db } from "../db.js";
 import { hashing } from "../helpers/hash.js";
 import validator from "email-validator";
 
-
 export const register = async (req: Request, res: Response) => {
   try {
     const { name, email, password, role } = req.body;

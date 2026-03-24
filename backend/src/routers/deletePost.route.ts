@@ -5,8 +5,8 @@ import { readPost } from "../controllers/readPost.controller.js";
 import { isAdmin } from "../middlewares/isAdmin.js";
 import { deletePost } from "../controllers/deletePost.controller.js";
 
-const DeletePost: express.Router = Router();
+const DeletePost: express.Router = Router({mergeParams : true});
 
-DeletePost.delete("/", auth , isAdmin, deletePost);
+DeletePost.delete("/:id", auth , isAdmin, deletePost);
 
 export default DeletePost;

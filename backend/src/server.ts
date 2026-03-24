@@ -30,7 +30,7 @@ app.use("/refresh", RefreshRouter);
 app.use("/logout", LogoutRouter);
 app.use("/users/me", UserMeRouter);
 app.use("/users", UserRouter);
-app.use("/users/:id", DeleteUser);
+app.use("/users", DeleteUser);
 app.use("/posts", AddPost);
 app.use("/posts", ReadPost);
 app.use("/posts/:id", DeletePost);

@@ -4,7 +4,9 @@ import { type Request, type Response } from "express";
 export const deletePost = async (req: Request, res: Response) => {
   try {
     const numId = Number(req.params.id);
-
+    if (isNaN(numId)) {
+      return res.status(400).json({ message: "Invalid or missing user ID" });
+    }
     const post = await db.posts.findFirst({ where: { id: numId } });
     if (!post) {
       return res.status(404).json({ message: "Post not found" });

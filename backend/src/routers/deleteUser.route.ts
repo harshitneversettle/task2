@@ -6,6 +6,6 @@ import { deleteUser } from "../controllers/deleteUser.controller.js";
 
 const DeleteUser: express.Router = Router();
 
-DeleteUser.delete("/", auth , isAdmin, deleteUser);
+DeleteUser.delete("/:id", auth , isAdmin, deleteUser);
 
 export default DeleteUser;
