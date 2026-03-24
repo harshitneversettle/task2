@@ -8,6 +8,7 @@ import dotenv from "dotenv";
 import { auth } from "./middlewares/auth.js";
 import type { jwtPayload } from "./types/jwtPayload.js";
 import cookieParser from "cookie-parser";
+import { isAdmin } from "./middlewares/isAdmin.js";
 
 dotenv.config();
 
@@ -180,12 +181,59 @@ app.post("/logout", auth, async (req, res) => {
       where: { id: user.id },
       data: { refreshToken: null },
     });
-    res.clearCookie("refreshToken");
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      sameSite: "strict",
+    });
     res.status(200).json({ message: "successfyllu logget out" });
   } catch (error) {
     return res.status(500).json({ message: "something is wrong" });
   }
 });
+
+app.get("/users/me", auth, async (req, res) => {
+  try {
+    const decoded = req.body.user as jwtPayload;
+    if (!decoded) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const user = await db.users.findFirst({
+      where: { id: decoded.userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res.status(200).json({ user });
+  } catch (error) {
+    console.error("Get profile error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.get("/users", auth, isAdmin, async (req, res) => {
+  const user = req.body.userInfo;
+
+  const alldata = await db.users.findMany({
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      createdAt : true 
+    },
+  });
+});
+
 app.listen(3001, () => {
   console.log("server is running");
 });
