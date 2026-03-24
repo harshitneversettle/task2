@@ -8,7 +8,7 @@ export const isAdmin = async (
   res: Response,
   next: NextFunction,
 ) => {
-  const decoded = req.body.user as jwtPayload;
+  const decoded = (req as any).user as jwtPayload;
   const user = await db.users.findFirst({ where: { id: decoded.userId } });
   if (!user) {
     return res.status(403).json({ message: "np user found" });
@@ -16,6 +16,6 @@ export const isAdmin = async (
   if (user.role !== "Admin") {
     return res.status(403).json({ message: "Access denied" });
   }
-  req.body.userInfo = user
+  (req as any).userInfo = user
   next();
 };

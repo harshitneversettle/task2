@@ -12,6 +12,6 @@ export const auth = async (req: Request, res: Response, next: NextFunction) => {
   }
 
   const decoded = jwt.verify(token, process.env.ACCESS_SECRET!) as jwtPayload;
-  req.body.user = decoded;
+  (req as any).user = decoded;
   next();
 };

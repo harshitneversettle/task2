@@ -1,4 +1,4 @@
-import express from "express";
+import express, { type Request, type Response } from "express";
 import { hashing } from "./helpers/hash.js";
 import { db } from "./db.js";
 import validator from "email-validator";
@@ -9,6 +9,8 @@ import { auth } from "./middlewares/auth.js";
 import type { jwtPayload } from "./types/jwtPayload.js";
 import cookieParser from "cookie-parser";
 import { isAdmin } from "./middlewares/isAdmin.js";
+import rateLimit from "express-rate-limit";
+import { ratelimiter } from "./middlewares/rateLimiter.js";
 
 dotenv.config();
 
@@ -19,7 +21,7 @@ app.get("/", (req, res) => {
   console.log("jansjn");
 });
 
-app.post("/register", async (req, res) => {
+app.post("/register", ratelimiter, async (req, res) => {
   console.log("insode");
   try {
     const { name, email, password, role } = req.body;
@@ -56,7 +58,7 @@ app.post("/register", async (req, res) => {
   }
 });
 
-app.post("/login", async (req, res) => {
+app.post("/login", ratelimiter, async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
@@ -112,7 +114,7 @@ app.post("/login", async (req, res) => {
   }
 });
 
-app.post("/refresh", async (req, res) => {
+app.post("/refresh", ratelimiter, async (req, res) => {
   try {
     const refreshToken = req.cookies.refreshToken;
     if (!refreshToken) {
@@ -168,7 +170,7 @@ app.post("/logout", auth, async (req, res) => {
   try {
     console.log(req.body);
 
-    const decoded = req.body.user as jwtPayload;
+    const decoded = (req as any).user as jwtPayload;
     if (!decoded) {
       return res.status(401).json({ message: "error" });
     }
@@ -193,7 +195,7 @@ app.post("/logout", auth, async (req, res) => {
 
 app.get("/users/me", auth, async (req, res) => {
   try {
-    const decoded = req.body.user as jwtPayload;
+    const decoded = (req as any).user as jwtPayload;
     if (!decoded) {
       return res.status(401).json({ message: "Unauthorized" });
     }
@@ -222,7 +224,7 @@ app.get("/users/me", auth, async (req, res) => {
 
 app.get("/users", auth, isAdmin, async (req, res) => {
   try {
-    const user = req.body.userInfo;
+    const user = (req as any).userInfo;
 
     const alldata = await db.users.findMany({
       select: {
@@ -235,6 +237,7 @@ app.get("/users", auth, isAdmin, async (req, res) => {
     });
     return res.status(200).json({ alldata });
   } catch (error) {
+    console.log(error);
     return res.status(500).json({ message: "Internal server error" });
   }
 });
